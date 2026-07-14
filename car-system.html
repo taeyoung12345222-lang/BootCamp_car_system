@@ -658,6 +658,16 @@
             margin: 10px 0;
         }
     </style>
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1e3c72">
+    <meta name="description" content="차량 관리 및 주차장 예약을 쉽게 할 수 있는 시스템">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="caroom">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect fill='%231e3c72' width='180' height='180'/><text x='90' y='90' font-size='80' font-weight='bold' fill='%23ffffff' text-anchor='middle' dominant-baseline='central' font-family='Arial'>🚗</text></svg>">
 </head>
 <body>
     <!-- 인증 화면 -->
@@ -1680,6 +1690,33 @@
             };
             return labels[status] || status;
         }
+    </script>
+
+    <!-- PWA Service Worker 등록 -->
+    <script>
+        // Service Worker 등록
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').then(reg => {
+                console.log('✅ Service Worker 등록 성공:', reg);
+            }).catch(err => {
+                console.log('❌ Service Worker 등록 실패:', err);
+            });
+        }
+
+        // PWA 설치 프롬프트
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            // 설치 버튼을 표시하거나 자동 설치 유도
+            console.log('PWA 설치 가능');
+        });
+
+        // 앱 설치 버튼 (선택)
+        window.addEventListener('appinstalled', () => {
+            console.log('✅ PWA가 설치되었습니다!');
+            deferredPrompt = null;
+        });
     </script>
 </body>
 </html>
