@@ -1,5 +1,8 @@
 {
   "buildCommand": "echo 'Building...' && echo 'PWA 앱 빌드 완료'",
   "outputDirectory": ".",
-  "regions": ["icn1"]
+  "regions": ["icn1"],
+  "rewrites": [
+    { "source": "/", "destination": "/car-system.html" }
+  ]
 }
