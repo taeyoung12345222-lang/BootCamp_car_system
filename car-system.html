@@ -1,0 +1,1685 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>caroom - 차량 관리 및 주차장 예약 시스템</title>
+    <script async src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+
+        /* 레이아웃 */
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .auth-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .auth-box {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .auth-box h2 {
+            margin-bottom: 30px;
+            color: #333;
+            text-align: center;
+        }
+
+        .auth-box input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .auth-box button {
+            width: 100%;
+            padding: 12px;
+            background-color: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .auth-box button:hover {
+            background-color: #764ba2;
+        }
+
+        .auth-box .toggle-link {
+            text-align: center;
+            margin-top: 20px;
+            color: #667eea;
+            cursor: pointer;
+            text-decoration: underline;
+            font-size: 14px;
+        }
+
+        .header {
+            background-color: #333;
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        @media (min-width: 768px) {
+            .header {
+                flex-direction: row;
+            }
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin: 0;
+        }
+
+        .user-info {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            font-size: 14px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .user-info .logout-btn {
+            padding: 8px 15px;
+            background-color: #667eea;
+            border: none;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .sidebar {
+            width: 100%;
+            background-color: #f9f9f9;
+            border-bottom: 1px solid #ddd;
+            overflow-x: auto;
+            padding: 10px 0;
+        }
+
+        @media (min-width: 768px) {
+            .sidebar {
+                width: 200px;
+                border-bottom: none;
+                border-right: 1px solid #ddd;
+                overflow-x: visible;
+                padding: 0;
+                overflow-y: auto;
+                max-height: calc(100vh - 60px);
+            }
+        }
+
+        .nav-menu {
+            display: flex;
+            gap: 10px;
+            padding: 0 10px;
+            flex-wrap: wrap;
+        }
+
+        @media (min-width: 768px) {
+            .nav-menu {
+                flex-direction: column;
+                gap: 0;
+                padding: 0;
+                flex-wrap: nowrap;
+            }
+        }
+
+        .nav-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            background-color: #f9f9f9;
+            border: none;
+            border-left: 3px solid transparent;
+            color: #333;
+            font-size: 14px;
+            font-weight: 500;
+            white-space: nowrap;
+            border-radius: 0;
+            transition: all 0.3s;
+        }
+
+        @media (min-width: 768px) {
+            .nav-item {
+                border-bottom: 1px solid #eee;
+            }
+        }
+
+        .nav-item:hover {
+            background-color: #efefef;
+            border-color: #667eea;
+        }
+
+        .nav-item.active {
+            background-color: #e8eaf6;
+            border-color: #667eea;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            max-height: calc(100vh - 60px);
+        }
+
+        @media (min-width: 768px) {
+            .content {
+                max-height: calc(100vh - 120px);
+            }
+        }
+
+        .view {
+            display: none;
+        }
+
+        .view.active {
+            display: block;
+        }
+
+        /* 대시보드 */
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .stat-card h3 {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .stat-card .value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        /* 주차 레이아웃 */
+        .parking-layout {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .parking-layout h3 {
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+
+        .floor-section {
+            margin-bottom: 30px;
+        }
+
+        .floor-title {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .parking-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+            gap: 10px;
+        }
+
+        .parking-space {
+            width: 100%;
+            aspect-ratio: 1;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .parking-space:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .parking-space.empty {
+            background-color: #4caf50;
+            color: white;
+            border-color: #45a049;
+        }
+
+        .parking-space.occupied {
+            background-color: #f44336;
+            color: white;
+            border-color: #da190b;
+        }
+
+        .parking-space.reserved {
+            background-color: #ff9800;
+            color: white;
+            border-color: #e68900;
+        }
+
+        .parking-space .vehicle-info {
+            position: absolute;
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            white-space: normal;
+            width: 150px;
+            color: #333;
+            border: 1px solid #ddd;
+            display: none;
+            top: 100%;
+            z-index: 10;
+            font-size: 11px;
+            margin-top: 5px;
+        }
+
+        .parking-space:hover .vehicle-info {
+            display: block;
+        }
+
+        /* 차량 목록 */
+        .vehicle-list {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .vehicle-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .vehicle-table thead {
+            background-color: #f5f5f5;
+        }
+
+        .vehicle-table th,
+        .vehicle-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .vehicle-table th {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .vehicle-table tr:hover {
+            background-color: #f9f9f9;
+        }
+
+        /* 예약 관리 */
+        .reservation-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .reservation-item {
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .reservation-details {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .reservation-details p {
+            margin: 5px 0;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .reservation-details strong {
+            color: #333;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background-color: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #764ba2;
+        }
+
+        .btn-secondary {
+            background-color: #ddd;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background-color: #bbb;
+        }
+
+        .btn-danger {
+            background-color: #f44336;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #da190b;
+        }
+
+        .btn-success {
+            background-color: #4caf50;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #45a049;
+        }
+
+        .btn-warning {
+            background-color: #ff9800;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background-color: #e68900;
+        }
+
+        /* 모달 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            max-height: 90vh;
+            overflow-y: auto;
+            max-width: 90%;
+            width: 100%;
+        }
+
+        @media (min-width: 768px) {
+            .modal-content {
+                max-width: 500px;
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            font-size: 13px;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 13px;
+            font-family: inherit;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+
+        /* 메시지 */
+        .alert {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            border-left: 4px solid;
+        }
+
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border-color: #c3e6cb;
+        }
+
+        .alert-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border-color: #f5c6cb;
+        }
+
+        .alert-warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border-color: #ffeaa7;
+        }
+
+        .alert-info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border-color: #bee5eb;
+        }
+
+        /* 반응형 */
+        @media (max-width: 767px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .content {
+                padding: 15px;
+                max-height: auto;
+            }
+
+            .stat-card .value {
+                font-size: 24px;
+            }
+
+            .parking-grid {
+                grid-template-columns: repeat(auto-fit, minmax(50px, 1fr));
+            }
+
+            .vehicle-table {
+                font-size: 11px;
+            }
+
+            .vehicle-table th,
+            .vehicle-table td {
+                padding: 8px;
+            }
+
+            .reservation-item {
+                flex-direction: column;
+            }
+
+            .action-buttons {
+                width: 100%;
+            }
+
+            .action-buttons .btn {
+                flex: 1;
+            }
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .loading::after {
+            content: '.';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60% { content: '...'; }
+            80%, 100% { content: ''; }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .empty-state p {
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- 인증 화면 -->
+    <div id="authContainer" class="auth-container">
+        <div class="auth-box">
+            <h2 id="authTitle">로그인</h2>
+            <div id="loginForm">
+                <input type="email" id="loginEmail" placeholder="이메일" required>
+                <input type="password" id="loginPassword" placeholder="비밀번호" required>
+                <button onclick="handleLogin()">로그인</button>
+                <div class="toggle-link" onclick="toggleAuthForm()">회원가입하기</div>
+            </div>
+            <div id="signupForm" style="display: none;">
+                <input type="email" id="signupEmail" placeholder="이메일" required>
+                <input type="password" id="signupPassword" placeholder="비밀번호 (최소 6글자)" required>
+                <input type="text" id="signupName" placeholder="이름" required>
+                <input type="tel" id="signupPhone" placeholder="전화번호" required>
+                <button onclick="handleSignup()">회원가입</button>
+                <div class="toggle-link" onclick="toggleAuthForm()">로그인하기</div>
+            </div>
+            <div id="authMessage" style="margin-top: 15px; text-align: center; color: #f44336; display: none;"></div>
+        </div>
+    </div>
+
+    <!-- 메인 애플리케이션 -->
+    <div id="appContainer" style="display: none; display: none;">
+        <div class="header">
+            <h1>🚗 caroom</h1>
+            <div class="user-info">
+                <span id="userDisplay"></span>
+                <span id="adminBadge" style="display: none; background: #f44336; padding: 5px 10px; border-radius: 3px; font-size: 12px;">관리자</span>
+                <button class="logout-btn" onclick="handleLogout()">로그아웃</button>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <div class="nav-menu">
+                <button class="nav-item active" onclick="switchView('dashboard')">대시보드</button>
+                <button class="nav-item" onclick="switchView('vehicles')">차량 목록</button>
+                <button class="nav-item" onclick="switchView('reservations')">나의 예약</button>
+                <button class="nav-item" onclick="switchView('parking')">주차 현황</button>
+                <button class="nav-item" id="adminMenu" style="display: none; color: #f44336;">관리자</button>
+            </div>
+        </div>
+
+        <div class="content">
+            <!-- 대시보드 -->
+            <div id="dashboard" class="view active">
+                <h2>대시보드</h2>
+                <div class="dashboard">
+                    <div class="stat-card">
+                        <h3>전체 주차 공간</h3>
+                        <div class="value" id="totalSpaces">40</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>사용 중인 공간</h3>
+                        <div class="value" id="occupiedSpaces">20</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>예약된 공간</h3>
+                        <div class="value" id="reservedSpaces">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>빈 공간</h3>
+                        <div class="value" id="emptySpaces">20</div>
+                    </div>
+                </div>
+
+                <div class="parking-layout">
+                    <h3>실시간 주차장 상태</h3>
+                    <div id="dashboardParkingLayout"></div>
+                </div>
+
+                <div class="reservation-section" id="upcomingReservations">
+                    <h3>예정된 예약</h3>
+                    <div id="upcomingReservationsList"></div>
+                </div>
+            </div>
+
+            <!-- 차량 목록 -->
+            <div id="vehicles" class="view">
+                <h2>차량 목록</h2>
+                <div class="vehicle-list">
+                    <table class="vehicle-table">
+                        <thead>
+                            <tr>
+                                <th>차량번호</th>
+                                <th>모델명</th>
+                                <th>연식</th>
+                                <th>종류</th>
+                                <th>연료</th>
+                                <th>상태</th>
+                                <th>위치</th>
+                            </tr>
+                        </thead>
+                        <tbody id="vehicleTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 나의 예약 -->
+            <div id="reservations" class="view">
+                <h2>나의 예약</h2>
+                <div id="myReservationsList"></div>
+            </div>
+
+            <!-- 주차 현황 -->
+            <div id="parking" class="view">
+                <h2>주차 현황</h2>
+                <div class="parking-layout">
+                    <div id="parkingLayoutFull"></div>
+                </div>
+                <div style="display: flex; gap: 30px; margin-top: 30px; flex-wrap: wrap;">
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <div style="width: 30px; height: 30px; background-color: #4caf50; border-radius: 3px;"></div>
+                        <span>빈 공간</span>
+                    </div>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <div style="width: 30px; height: 30px; background-color: #f44336; border-radius: 3px;"></div>
+                        <span>사용 중</span>
+                    </div>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <div style="width: 30px; height: 30px; background-color: #ff9800; border-radius: 3px;"></div>
+                        <span>예약됨</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 모달: 예약 생성 -->
+    <div id="reservationModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>주차 공간 예약</h2>
+                <button class="close-btn" onclick="closeModal('reservationModal')">&times;</button>
+            </div>
+            <form onsubmit="createReservation(event)">
+                <div class="form-group">
+                    <label>선택한 공간</label>
+                    <input type="text" id="selectedSpace" readonly>
+                </div>
+                <div class="form-group">
+                    <label>차량 선택 *</label>
+                    <select id="reservationVehicle" required>
+                        <option value="">-- 차량 선택 --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>예약 시작 시간 *</label>
+                    <input type="datetime-local" id="startTime" required>
+                </div>
+                <div class="form-group">
+                    <label>예약 종료 시간 *</label>
+                    <input type="datetime-local" id="endTime" required>
+                </div>
+                <div class="form-group">
+                    <label>특별 요청사항</label>
+                    <textarea id="specialRequests" placeholder="필요한 특별 요청사항을 입력하세요"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('reservationModal')">취소</button>
+                    <button type="submit" class="btn btn-primary">예약하기</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 모달: 예약 편집 -->
+    <div id="editReservationModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>예약 수정</h2>
+                <button class="close-btn" onclick="closeModal('editReservationModal')">&times;</button>
+            </div>
+            <form onsubit="updateReservation(event)">
+                <div class="form-group">
+                    <label>공간</label>
+                    <input type="text" id="editSpace" readonly>
+                </div>
+                <div class="form-group">
+                    <label>차량</label>
+                    <input type="text" id="editVehicle" readonly>
+                </div>
+                <div class="form-group">
+                    <label>예약 시작 시간 *</label>
+                    <input type="datetime-local" id="editStartTime" required>
+                </div>
+                <div class="form-group">
+                    <label>예약 종료 시간 *</label>
+                    <input type="datetime-local" id="editEndTime" required>
+                </div>
+                <div class="form-group">
+                    <label>특별 요청사항</label>
+                    <textarea id="editSpecialRequests"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('editReservationModal')">취소</button>
+                    <button type="submit" class="btn btn-primary">수정하기</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Supabase 초기화
+        const SUPABASE_URL = 'https://qjalpnsprczmwzxefjau.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_aJ_CBn4KzJGOicZYsCEbwg_isW9rNA6';
+        let supabase;
+
+        // 차량 데이터 (PRD에서 제공)
+        const INITIAL_VEHICLES = [
+            { license_plate: '12가 3456', model_name: '테슬라', year: 2022, vehicle_type: '세단', fuel_type: '가솔린', mileage_efficiency: '보통', current_location: '1-1' },
+            { license_plate: '34나 5678', model_name: '쌍용', year: 2021, vehicle_type: '중형', fuel_type: '가솔린', mileage_efficiency: '우수', current_location: '1-3' },
+            { license_plate: '56다 7890', model_name: '현대', year: 2023, vehicle_type: '중형', fuel_type: '하이브리드', mileage_efficiency: '탁월', current_location: '1-4' },
+            { license_plate: '78라 1234', model_name: '기아', year: 2022, vehicle_type: '소형', fuel_type: '디젤', mileage_efficiency: '탁월', current_location: '1-5' },
+            { license_plate: '90마 2345', model_name: '포르쉐', year: 2020, vehicle_type: '소형', fuel_type: '디젤', mileage_efficiency: '뛰어남', current_location: '1-6' },
+            { license_plate: '11바 3456', model_name: '큐라2', year: 2021, vehicle_type: '세단', fuel_type: '디젤', mileage_efficiency: '우수', current_location: '1-7' },
+            { license_plate: '22사 4567', model_name: 'K5', year: 2022, vehicle_type: '중형', fuel_type: '가솔린', mileage_efficiency: '보통', current_location: '1-8' },
+            { license_plate: '33아 5678', model_name: '쌍용', year: 2023, vehicle_type: '중형', fuel_type: '전기', mileage_efficiency: '우수', current_location: '1-9' },
+            { license_plate: '44자 6789', model_name: '테슬라', year: 2021, vehicle_type: '중형', fuel_type: '가솔린', mileage_efficiency: '탁월', current_location: '1-10' },
+            { license_plate: '55차 7890', model_name: '쌍용', year: 2022, vehicle_type: '세단', fuel_type: '디젤', mileage_efficiency: '탁월', current_location: '2-1' },
+            { license_plate: '66카 8901', model_name: '페이', year: 2020, vehicle_type: '준중형', fuel_type: '가솔린', mileage_efficiency: '뛰어남', current_location: '2-2' },
+            { license_plate: '77타 9012', model_name: '저무', year: 2019, vehicle_type: '준대형', fuel_type: '가솔린', mileage_efficiency: '우수', current_location: '2-3' },
+            { license_plate: '88파 0123', model_name: '포르쉐', year: 2023, vehicle_type: '소형', fuel_type: '하이브리드', mileage_efficiency: '보통', current_location: '2-4' },
+            { license_plate: '99하 1234', model_name: 'K8', year: 2023, vehicle_type: '중형', fuel_type: '가솔린', mileage_efficiency: '우수', current_location: '2-5' },
+            { license_plate: '13가 2345', model_name: '뉴', year: 2022, vehicle_type: '세단', fuel_type: '디젤', mileage_efficiency: '탁월', current_location: '2-6' },
+            { license_plate: '24나 3456', model_name: '마렉', year: 2021, vehicle_type: '중형', fuel_type: '하이브리드', mileage_efficiency: '탁월', current_location: '2-7' },
+            { license_plate: '35다 4567', model_name: 'EV6', year: 2023, vehicle_type: '세단', fuel_type: '전기', mileage_efficiency: '뛰어남', current_location: '2-8' },
+            { license_plate: '46라 5678', model_name: '현대', year: 2019, vehicle_type: '소형', fuel_type: '디젤', mileage_efficiency: '우수', current_location: '2-9' },
+            { license_plate: '57마 6789', model_name: '썪터3', year: 2020, vehicle_type: '세단', fuel_type: '디젤', mileage_efficiency: '보통', current_location: '2-10' },
+            { license_plate: '68바 7890', model_name: '제네시스 G80', year: 2023, vehicle_type: '중형', fuel_type: '가솔린', mileage_efficiency: '우수', current_location: '1-1' }
+        ];
+
+        // 전역 상태
+        let currentUser = null;
+        let userVehicles = [];
+        let allReservations = [];
+        let selectedParkingSpace = null;
+        let editingReservationId = null;
+
+        // 초기화
+        window.addEventListener('load', initApp);
+
+        async function initApp() {
+            const { createClient } = window.supabase;
+            supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+            
+            // 세션 확인
+            const { data: { session } } = await supabase.auth.getSession();
+            
+            if (session) {
+                currentUser = session.user;
+                showApp();
+                await initializeAppData();
+                setupRealtimeListeners();
+            } else {
+                showAuthForm();
+            }
+        }
+
+        function showAuthForm() {
+            document.getElementById('authContainer').style.display = 'flex';
+            document.getElementById('appContainer').style.display = 'none';
+        }
+
+        function showApp() {
+            document.getElementById('authContainer').style.display = 'none';
+            document.getElementById('appContainer').style.display = 'flex';
+            updateUserInfo();
+        }
+
+        async function handleLogin() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            if (!email || !password) {
+                showAuthMessage('이메일과 비밀번호를 입력하세요', 'error');
+                return;
+            }
+
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email,
+                    password
+                });
+
+                if (error) throw error;
+
+                currentUser = data.user;
+                showApp();
+                await initializeAppData();
+                setupRealtimeListeners();
+            } catch (error) {
+                showAuthMessage('로그인 실패: ' + error.message, 'error');
+            }
+        }
+
+        async function handleSignup() {
+            const email = document.getElementById('signupEmail').value;
+            const password = document.getElementById('signupPassword').value;
+            const name = document.getElementById('signupName').value;
+            const phone = document.getElementById('signupPhone').value;
+
+            if (!email || !password || !name || !phone) {
+                showAuthMessage('모든 필드를 입력하세요', 'error');
+                return;
+            }
+
+            if (password.length < 6) {
+                showAuthMessage('비밀번호는 최소 6글자 이상이어야 합니다', 'error');
+                return;
+            }
+
+            try {
+                const { data, error } = await supabase.auth.signUp({
+                    email,
+                    password
+                });
+
+                if (error) throw error;
+
+                // 사용자 프로필 생성
+                const { error: profileError } = await supabase
+                    .from('users')
+                    .insert({
+                        email,
+                        name,
+                        phone,
+                        is_admin: false
+                    });
+
+                if (profileError) throw profileError;
+
+                showAuthMessage('회원가입 성공! 로그인해주세요', 'success');
+                setTimeout(() => {
+                    toggleAuthForm();
+                }, 1500);
+            } catch (error) {
+                showAuthMessage('회원가입 실패: ' + error.message, 'error');
+            }
+        }
+
+        function toggleAuthForm() {
+            const loginForm = document.getElementById('loginForm');
+            const signupForm = document.getElementById('signupForm');
+            const authTitle = document.getElementById('authTitle');
+
+            if (loginForm.style.display === 'none') {
+                loginForm.style.display = 'block';
+                signupForm.style.display = 'none';
+                authTitle.textContent = '로그인';
+            } else {
+                loginForm.style.display = 'none';
+                signupForm.style.display = 'block';
+                authTitle.textContent = '회원가입';
+            }
+            
+            document.getElementById('authMessage').style.display = 'none';
+        }
+
+        function showAuthMessage(message, type) {
+            const messageEl = document.getElementById('authMessage');
+            messageEl.textContent = message;
+            messageEl.className = 'alert alert-' + (type === 'error' ? 'error' : 'success');
+            messageEl.style.display = 'block';
+        }
+
+        async function handleLogout() {
+            await supabase.auth.signOut();
+            currentUser = null;
+            userVehicles = [];
+            allReservations = [];
+            showAuthForm();
+        }
+
+        function updateUserInfo() {
+            const userDisplay = document.getElementById('userDisplay');
+            userDisplay.textContent = currentUser.email;
+
+            // 관리자 확인 (여기서는 데이터베이스에서 확인)
+            checkAdminStatus();
+        }
+
+        async function checkAdminStatus() {
+            try {
+                const { data } = await supabase
+                    .from('users')
+                    .select('is_admin')
+                    .eq('email', currentUser.email)
+                    .single();
+
+                if (data && data.is_admin) {
+                    document.getElementById('adminBadge').style.display = 'inline-block';
+                    document.getElementById('adminMenu').style.display = 'block';
+                }
+            } catch (error) {
+                console.error('관리자 상태 확인 실패:', error);
+            }
+        }
+
+        async function initializeAppData() {
+            // 차량 초기화
+            await initializeVehicles();
+            // 주차 공간 초기화
+            await initializeParkingSpaces();
+            // 데이터 로드
+            await loadReservations();
+            await loadUserVehicles();
+            // UI 업데이트
+            updateDashboard();
+            renderVehicleList();
+            renderMyReservations();
+            renderParkingLayout();
+        }
+
+        async function initializeVehicles() {
+            try {
+                // 기존 데이터 확인
+                const { data } = await supabase
+                    .from('vehicles')
+                    .select('*')
+                    .limit(1);
+
+                if (data && data.length > 0) {
+                    return; // 이미 초기화됨
+                }
+
+                // 초기 차량 데이터 삽입
+                for (const vehicle of INITIAL_VEHICLES) {
+                    await supabase
+                        .from('vehicles')
+                        .insert({
+                            license_plate: vehicle.license_plate,
+                            model_name: vehicle.model_name,
+                            year: vehicle.year,
+                            vehicle_type: vehicle.vehicle_type,
+                            fuel_type: vehicle.fuel_type,
+                            mileage_efficiency: vehicle.mileage_efficiency,
+                            status: 'active',
+                            current_location: vehicle.current_location
+                        });
+                }
+
+                console.log('차량 데이터 초기화 완료');
+            } catch (error) {
+                console.error('차량 초기화 오류:', error);
+            }
+        }
+
+        async function initializeParkingSpaces() {
+            try {
+                // 기존 데이터 확인
+                const { data } = await supabase
+                    .from('parking_spaces')
+                    .select('*')
+                    .limit(1);
+
+                if (data && data.length > 0) {
+                    return; // 이미 초기화됨
+                }
+
+                // 주차 공간 생성 (1층, 2층 각 20개)
+                for (let floor = 1; floor <= 2; floor++) {
+                    for (let spaceNo = 1; spaceNo <= 20; spaceNo++) {
+                        await supabase
+                            .from('parking_spaces')
+                            .insert({
+                                floor: floor,
+                                space_number: spaceNo,
+                                location_code: `${floor}-${spaceNo}`,
+                                is_active: true
+                            });
+                    }
+                }
+
+                console.log('주차 공간 초기화 완료');
+            } catch (error) {
+                console.error('주차 공간 초기화 오류:', error);
+            }
+        }
+
+        async function loadReservations() {
+            try {
+                const { data, error } = await supabase
+                    .from('parking_reservations')
+                    .select(`
+                        *,
+                        vehicles(license_plate, model_name),
+                        parking_spaces(floor, space_number, location_code)
+                    `)
+                    .order('start_time', { ascending: true });
+
+                if (error) throw error;
+                allReservations = data || [];
+            } catch (error) {
+                console.error('예약 로드 오류:', error);
+            }
+        }
+
+        async function loadUserVehicles() {
+            try {
+                const { data, error } = await supabase
+                    .from('vehicles')
+                    .select('*')
+                    .order('license_plate', { ascending: true });
+
+                if (error) throw error;
+                userVehicles = data || [];
+            } catch (error) {
+                console.error('차량 로드 오류:', error);
+            }
+        }
+
+        function setupRealtimeListeners() {
+            // 예약 실시간 구독
+            supabase
+                .channel('reservations')
+                .on('postgres_changes', 
+                    { event: '*', schema: 'public', table: 'parking_reservations' },
+                    (payload) => {
+                        console.log('예약 변경:', payload);
+                        loadReservations().then(() => {
+                            updateDashboard();
+                            renderParkingLayout();
+                            renderMyReservations();
+                        });
+                    }
+                )
+                .subscribe();
+
+            // 차량 실시간 구독
+            supabase
+                .channel('vehicles')
+                .on('postgres_changes',
+                    { event: '*', schema: 'public', table: 'vehicles' },
+                    (payload) => {
+                        console.log('차량 변경:', payload);
+                        loadUserVehicles().then(() => {
+                            renderVehicleList();
+                            updateDashboard();
+                        });
+                    }
+                )
+                .subscribe();
+        }
+
+        function switchView(viewName) {
+            // 뷰 숨기기
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById(viewName).classList.add('active');
+
+            // 메뉴 활성화
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // 데이터 새로고침
+            if (viewName === 'reservations') {
+                renderMyReservations();
+            } else if (viewName === 'parking') {
+                renderParkingLayout();
+            } else if (viewName === 'dashboard') {
+                updateDashboard();
+            }
+        }
+
+        async function updateDashboard() {
+            try {
+                // 통계 계산
+                const totalSpaces = 40;
+                const reserved = allReservations.filter(r => ['scheduled', 'active'].includes(r.status)).length;
+                const occupied = userVehicles.length; // 모든 차량이 현재 주차 중이라고 가정
+                const empty = totalSpaces - occupied - reserved;
+
+                document.getElementById('totalSpaces').textContent = totalSpaces;
+                document.getElementById('occupiedSpaces').textContent = occupied;
+                document.getElementById('reservedSpaces').textContent = reserved;
+                document.getElementById('emptySpaces').textContent = empty;
+
+                // 주차 레이아웃 렌더링
+                renderDashboardParking();
+
+                // 예정된 예약 표시
+                renderUpcomingReservations();
+            } catch (error) {
+                console.error('대시보드 업데이트 오류:', error);
+            }
+        }
+
+        function renderDashboardParking() {
+            const container = document.getElementById('dashboardParkingLayout');
+            container.innerHTML = '';
+
+            for (let floor = 1; floor <= 2; floor++) {
+                const floorSection = document.createElement('div');
+                floorSection.className = 'floor-section';
+
+                const title = document.createElement('div');
+                title.className = 'floor-title';
+                title.textContent = `${floor}층`;
+                floorSection.appendChild(title);
+
+                const grid = document.createElement('div');
+                grid.className = 'parking-grid';
+
+                for (let spaceNo = 1; spaceNo <= 20; spaceNo++) {
+                    const space = createParkingSpaceElement(floor, spaceNo);
+                    grid.appendChild(space);
+                }
+
+                floorSection.appendChild(grid);
+                container.appendChild(floorSection);
+            }
+        }
+
+        function renderParkingLayout() {
+            const container = document.getElementById('parkingLayoutFull');
+            container.innerHTML = '';
+
+            for (let floor = 1; floor <= 2; floor++) {
+                const floorSection = document.createElement('div');
+                floorSection.className = 'floor-section';
+
+                const title = document.createElement('div');
+                title.className = 'floor-title';
+                title.textContent = `${floor}층`;
+                floorSection.appendChild(title);
+
+                const grid = document.createElement('div');
+                grid.className = 'parking-grid';
+
+                for (let spaceNo = 1; spaceNo <= 20; spaceNo++) {
+                    const space = createParkingSpaceElement(floor, spaceNo, true);
+                    grid.appendChild(space);
+                }
+
+                floorSection.appendChild(grid);
+                container.appendChild(floorSection);
+            }
+        }
+
+        function createParkingSpaceElement(floor, spaceNo, clickable = false) {
+            const locationCode = `${floor}-${spaceNo}`;
+            const space = document.createElement('div');
+            space.className = 'parking-space';
+
+            // 상태 결정
+            const occupiedVehicle = userVehicles.find(v => v.current_location === locationCode);
+            const reservation = allReservations.find(r => 
+                r.parking_spaces?.location_code === locationCode && 
+                ['scheduled', 'active'].includes(r.status)
+            );
+
+            if (occupiedVehicle) {
+                space.classList.add('occupied');
+                space.textContent = spaceNo;
+                
+                const info = document.createElement('div');
+                info.className = 'vehicle-info';
+                info.innerHTML = `<strong>${occupiedVehicle.license_plate}</strong><br>${occupiedVehicle.model_name}`;
+                space.appendChild(info);
+            } else if (reservation) {
+                space.classList.add('reserved');
+                space.textContent = spaceNo;
+                
+                const info = document.createElement('div');
+                info.className = 'vehicle-info';
+                info.innerHTML = `<strong>예약됨</strong><br>${reservation.vehicles?.model_name || '차량'}`;
+                space.appendChild(info);
+            } else {
+                space.classList.add('empty');
+                space.textContent = spaceNo;
+
+                if (clickable) {
+                    space.style.cursor = 'pointer';
+                    space.onclick = () => openReservationModal(locationCode);
+                }
+            }
+
+            return space;
+        }
+
+        function openReservationModal(locationCode) {
+            selectedParkingSpace = locationCode;
+            document.getElementById('selectedSpace').value = locationCode;
+            
+            // 차량 목록 채우기
+            const select = document.getElementById('reservationVehicle');
+            select.innerHTML = '<option value="">-- 차량 선택 --</option>';
+            userVehicles.forEach(v => {
+                const option = document.createElement('option');
+                option.value = v.vehicle_id;
+                option.textContent = `${v.license_plate} (${v.model_name})`;
+                select.appendChild(option);
+            });
+
+            // 기본 시간 설정
+            const now = new Date();
+            const tomorrow = new Date(now);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+
+            document.getElementById('startTime').value = formatDateTimeLocal(now);
+            document.getElementById('endTime').value = formatDateTimeLocal(tomorrow);
+            document.getElementById('specialRequests').value = '';
+
+            openModal('reservationModal');
+        }
+
+        function formatDateTimeLocal(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            return `${year}-${month}-${day}T${hours}:${minutes}`;
+        }
+
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.add('show');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('show');
+            selectedParkingSpace = null;
+            editingReservationId = null;
+        }
+
+        async function createReservation(event) {
+            event.preventDefault();
+
+            const vehicleId = document.getElementById('reservationVehicle').value;
+            const startTime = document.getElementById('startTime').value;
+            const endTime = document.getElementById('endTime').value;
+            const specialRequests = document.getElementById('specialRequests').value;
+
+            if (!vehicleId || !startTime || !endTime) {
+                alert('필수 항목을 입력하세요');
+                return;
+            }
+
+            if (new Date(startTime) >= new Date(endTime)) {
+                alert('종료 시간은 시작 시간보다 이후여야 합니다');
+                return;
+            }
+
+            try {
+                // 주차 공간 ID 조회
+                const { data: spaceData } = await supabase
+                    .from('parking_spaces')
+                    .select('space_id')
+                    .eq('location_code', selectedParkingSpace)
+                    .single();
+
+                if (!spaceData) {
+                    throw new Error('주차 공간을 찾을 수 없습니다');
+                }
+
+                // 충돌 확인
+                const { data: conflicts } = await supabase
+                    .from('parking_reservations')
+                    .select('*')
+                    .eq('space_id', spaceData.space_id)
+                    .in('status', ['scheduled', 'active'])
+                    .or(`and(start_time.lt.${new Date(endTime).toISOString()},end_time.gt.${new Date(startTime).toISOString()})`);
+
+                if (conflicts && conflicts.length > 0) {
+                    alert('이 시간대에 이미 예약된 공간입니다');
+                    return;
+                }
+
+                // 예약 생성
+                const { error } = await supabase
+                    .from('parking_reservations')
+                    .insert({
+                        space_id: spaceData.space_id,
+                        vehicle_id: vehicleId,
+                        user_id: currentUser.id,
+                        start_time: new Date(startTime).toISOString(),
+                        end_time: new Date(endTime).toISOString(),
+                        special_requests: specialRequests,
+                        status: 'scheduled'
+                    });
+
+                if (error) throw error;
+
+                alert('예약이 완료되었습니다');
+                closeModal('reservationModal');
+                await loadReservations();
+                await updateDashboard();
+                renderMyReservations();
+            } catch (error) {
+                alert('예약 생성 실패: ' + error.message);
+            }
+        }
+
+        async function updateReservation(event) {
+            event.preventDefault();
+
+            const startTime = document.getElementById('editStartTime').value;
+            const endTime = document.getElementById('editEndTime').value;
+            const specialRequests = document.getElementById('editSpecialRequests').value;
+
+            if (!startTime || !endTime) {
+                alert('필수 항목을 입력하세요');
+                return;
+            }
+
+            if (new Date(startTime) >= new Date(endTime)) {
+                alert('종료 시간은 시작 시간보다 이후여야 합니다');
+                return;
+            }
+
+            try {
+                const { error } = await supabase
+                    .from('parking_reservations')
+                    .update({
+                        start_time: new Date(startTime).toISOString(),
+                        end_time: new Date(endTime).toISOString(),
+                        special_requests: specialRequests,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('reservation_id', editingReservationId);
+
+                if (error) throw error;
+
+                alert('예약이 수정되었습니다');
+                closeModal('editReservationModal');
+                await loadReservations();
+                await updateDashboard();
+                renderMyReservations();
+            } catch (error) {
+                alert('예약 수정 실패: ' + error.message);
+            }
+        }
+
+        async function cancelReservation(reservationId) {
+            if (!confirm('예약을 취소하시겠습니까?')) {
+                return;
+            }
+
+            try {
+                const { error } = await supabase
+                    .from('parking_reservations')
+                    .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+                    .eq('reservation_id', reservationId);
+
+                if (error) throw error;
+
+                alert('예약이 취소되었습니다');
+                await loadReservations();
+                await updateDashboard();
+                renderMyReservations();
+            } catch (error) {
+                alert('예약 취소 실패: ' + error.message);
+            }
+        }
+
+        async function returnVehicle(reservationId) {
+            if (!confirm('차를 반납하시겠습니까?')) {
+                return;
+            }
+
+            try {
+                const { error } = await supabase
+                    .from('parking_reservations')
+                    .update({ status: 'completed', updated_at: new Date().toISOString() })
+                    .eq('reservation_id', reservationId);
+
+                if (error) throw error;
+
+                alert('차가 반납되었습니다');
+                await loadReservations();
+                await updateDashboard();
+                renderMyReservations();
+            } catch (error) {
+                alert('반납 실패: ' + error.message);
+            }
+        }
+
+        function openEditReservationModal(reservationId) {
+            const reservation = allReservations.find(r => r.reservation_id === reservationId);
+            if (!reservation) return;
+
+            editingReservationId = reservationId;
+
+            document.getElementById('editSpace').value = reservation.parking_spaces?.location_code || '';
+            document.getElementById('editVehicle').value = `${reservation.vehicles?.license_plate} (${reservation.vehicles?.model_name})`;
+            document.getElementById('editStartTime').value = formatDateTimeLocal(new Date(reservation.start_time));
+            document.getElementById('editEndTime').value = formatDateTimeLocal(new Date(reservation.end_time));
+            document.getElementById('editSpecialRequests').value = reservation.special_requests || '';
+
+            openModal('editReservationModal');
+        }
+
+        function renderMyReservations() {
+            const container = document.getElementById('myReservationsList');
+            const myReservations = allReservations.filter(r => r.user_id === currentUser.id);
+
+            if (myReservations.length === 0) {
+                container.innerHTML = '<div class="empty-state"><p>예약 내역이 없습니다</p></div>';
+                return;
+            }
+
+            container.innerHTML = '';
+            myReservations.forEach(reservation => {
+                const item = document.createElement('div');
+                item.className = 'reservation-item';
+
+                const details = document.createElement('div');
+                details.className = 'reservation-details';
+                details.innerHTML = `
+                    <p><strong>공간:</strong> ${reservation.parking_spaces?.location_code || '정보 없음'}</p>
+                    <p><strong>차량:</strong> ${reservation.vehicles?.license_plate} (${reservation.vehicles?.model_name})</p>
+                    <p><strong>시작:</strong> ${new Date(reservation.start_time).toLocaleString('ko-KR')}</p>
+                    <p><strong>종료:</strong> ${new Date(reservation.end_time).toLocaleString('ko-KR')}</p>
+                    <p><strong>상태:</strong> <span style="color: ${getStatusColor(reservation.status)}">${getStatusLabel(reservation.status)}</span></p>
+                    ${reservation.special_requests ? `<p><strong>요청:</strong> ${reservation.special_requests}</p>` : ''}
+                `;
+
+                const buttons = document.createElement('div');
+                buttons.className = 'action-buttons';
+
+                if (reservation.status === 'scheduled') {
+                    const editBtn = document.createElement('button');
+                    editBtn.className = 'btn btn-secondary';
+                    editBtn.textContent = '수정';
+                    editBtn.onclick = () => openEditReservationModal(reservation.reservation_id);
+                    buttons.appendChild(editBtn);
+
+                    const cancelBtn = document.createElement('button');
+                    cancelBtn.className = 'btn btn-danger';
+                    cancelBtn.textContent = '취소';
+                    cancelBtn.onclick = () => cancelReservation(reservation.reservation_id);
+                    buttons.appendChild(cancelBtn);
+                } else if (reservation.status === 'active') {
+                    const returnBtn = document.createElement('button');
+                    returnBtn.className = 'btn btn-success';
+                    returnBtn.textContent = '반납';
+                    returnBtn.onclick = () => returnVehicle(reservation.reservation_id);
+                    buttons.appendChild(returnBtn);
+                }
+
+                item.appendChild(details);
+                item.appendChild(buttons);
+                container.appendChild(item);
+            });
+        }
+
+        function renderUpcomingReservations() {
+            const container = document.getElementById('upcomingReservationsList');
+            const now = new Date();
+            const upcoming = allReservations
+                .filter(r => new Date(r.start_time) > now && r.status === 'scheduled')
+                .sort((a, b) => new Date(a.start_time) - new Date(b.start_time))
+                .slice(0, 5);
+
+            if (upcoming.length === 0) {
+                container.innerHTML = '<div class="empty-state"><p>예정된 예약이 없습니다</p></div>';
+                return;
+            }
+
+            container.innerHTML = '';
+            upcoming.forEach(reservation => {
+                const item = document.createElement('div');
+                item.style.cssText = 'padding: 10px; border-bottom: 1px solid #eee; font-size: 13px;';
+                item.innerHTML = `
+                    <strong>${reservation.parking_spaces?.location_code}</strong> - 
+                    ${reservation.vehicles?.license_plate} 
+                    (${new Date(reservation.start_time).toLocaleString('ko-KR')})
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function renderVehicleList() {
+            const tbody = document.getElementById('vehicleTableBody');
+            tbody.innerHTML = '';
+
+            userVehicles.forEach(vehicle => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${vehicle.license_plate}</td>
+                    <td>${vehicle.model_name}</td>
+                    <td>${vehicle.year}</td>
+                    <td>${vehicle.vehicle_type}</td>
+                    <td>${vehicle.fuel_type}</td>
+                    <td><span style="color: ${vehicle.status === 'active' ? '#4caf50' : '#f44336'}">${getVehicleStatusLabel(vehicle.status)}</span></td>
+                    <td>${vehicle.current_location}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function getStatusLabel(status) {
+            const labels = {
+                'scheduled': '예정됨',
+                'active': '진행 중',
+                'completed': '완료',
+                'cancelled': '취소됨'
+            };
+            return labels[status] || status;
+        }
+
+        function getStatusColor(status) {
+            const colors = {
+                'scheduled': '#2196F3',
+                'active': '#4CAF50',
+                'completed': '#9E9E9E',
+                'cancelled': '#F44336'
+            };
+            return colors[status] || '#333';
+        }
+
+        function getVehicleStatusLabel(status) {
+            const labels = {
+                'active': '정상',
+                'maintenance': '정비 중',
+                'inactive': '미사용'
+            };
+            return labels[status] || status;
+        }
+    </script>
+</body>
+</html>
