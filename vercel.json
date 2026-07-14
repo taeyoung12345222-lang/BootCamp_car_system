@@ -1,7 +1,5 @@
 {
   "buildCommand": "echo 'Building...' && echo 'PWA 앱 빌드 완료'",
   "outputDirectory": ".",
-  "public": true,
-  "regions": ["icn1"],
-  "env": {}
+  "regions": ["icn1"]
 }
