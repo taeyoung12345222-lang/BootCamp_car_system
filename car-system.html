@@ -42,10 +42,24 @@
             max-width: 400px;
         }
 
+        .auth-box .brand {
+            text-align: center;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            font-size: 32px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            margin-bottom: 6px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
         .auth-box h2 {
             margin-bottom: 30px;
             color: #333;
             text-align: center;
+            font-weight: 500;
         }
 
         .auth-box input {
@@ -673,6 +687,7 @@
     <!-- 인증 화면 -->
     <div id="authContainer" class="auth-container">
         <div class="auth-box">
+            <div class="brand">🚗 Caroom</div>
             <h2 id="authTitle">로그인</h2>
             <div id="loginForm">
                 <input type="email" id="loginEmail" placeholder="이메일" required>
